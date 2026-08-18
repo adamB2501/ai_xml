@@ -1,0 +1,45 @@
+{
+  "lang":"fr",
+  "name":"pipeline",
+  "version":"0.0.0",
+  "spacy_version":">=3.8.13,<3.9.0",
+  "description":"",
+  "author":"",
+  "email":"",
+  "url":"",
+  "license":"",
+  "spacy_git_version":"fdca647",
+  "vectors":{
+    "width":0,
+    "vectors":0,
+    "keys":0,
+    "name":null,
+    "mode":"default"
+  },
+  "labels":{
+    "ner":[
+      "BUYER_NAME",
+      "BUYER_TAX_ID",
+      "DATE",
+      "INVOICE_NUMBER",
+      "ITEM_DESC",
+      "ITEM_LINE_TOTAL",
+      "ITEM_QTY",
+      "ITEM_UNIT_PRICE",
+      "SELLER_NAME",
+      "SELLER_TAX_ID",
+      "TOTAL_HT",
+      "TOTAL_TTC",
+      "TVA_AMOUNT"
+    ]
+  },
+  "pipeline":[
+    "ner"
+  ],
+  "components":[
+    "ner"
+  ],
+  "disabled":[
+
+  ]
+}

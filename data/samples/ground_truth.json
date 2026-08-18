@@ -1,0 +1,287 @@
+[
+  {
+    "file": "invoice_01.pdf",
+    "invoice_number": "FA-2026-12281",
+    "issue_date": "02 janvier 2026",
+    "issue_date_iso": "2026-01-02",
+    "seller_name": "Sofratel Systèmes SARL",
+    "seller_tax_id": "3389083Y/D/M/000",
+    "seller_address": "95 Rue Alain Savary, 2080 Ariana",
+    "buyer_name": "Institut Privé Ibn Khaldoun",
+    "buyer_tax_id": "3794026L/N/M/000",
+    "buyer_address": "32 Avenue Mohamed V, 1000 Tunis",
+    "line_items": [
+      {
+        "description": "Service d'hébergement web annuel",
+        "quantity": 11,
+        "unit": "an",
+        "unit_price": 303.847,
+        "line_total": 3342.317
+      },
+      {
+        "description": "Licence annuelle logiciel de gestion",
+        "quantity": 9,
+        "unit": "licence",
+        "unit_price": 387.589,
+        "line_total": 3488.301
+      }
+    ],
+    "total_ht": 6830.618,
+    "tva_rate_percent": 13,
+    "tva_amount": 887.98,
+    "total_ttc": 7718.598,
+    "currency": "TND"
+  },
+  {
+    "file": "invoice_02.pdf",
+    "invoice_number": "FA-2026-38428",
+    "issue_date": "03/09/2026",
+    "issue_date_iso": "2026-09-03",
+    "seller_name": "Atelier Numérique de Tunis",
+    "seller_tax_id": "9593103K/A/M/000",
+    "seller_address": "98 Rue de la Liberté, 3000 Sfax",
+    "buyer_name": "Clinique Les Oliviers",
+    "buyer_tax_id": "3164752M/N/M/000",
+    "buyer_address": "14 Avenue Habib Bourguiba, 4000 Sousse",
+    "line_items": [
+      {
+        "description": "Licence annuelle logiciel de gestion",
+        "quantity": 10,
+        "unit": "licence",
+        "unit_price": 406.258,
+        "line_total": 4062.58
+      },
+      {
+        "description": "Chaise de bureau ergonomique",
+        "quantity": 1,
+        "unit": "unité",
+        "unit_price": 227.311,
+        "line_total": 227.311
+      },
+      {
+        "description": "Fourniture et pose de climatiseur split 2CV",
+        "quantity": 9,
+        "unit": "unité",
+        "unit_price": 1350.249,
+        "line_total": 12152.241
+      }
+    ],
+    "total_ht": 16442.132,
+    "tva_rate_percent": 13,
+    "tva_amount": 2137.477,
+    "total_ttc": 18579.609,
+    "currency": "TND"
+  },
+  {
+    "file": "invoice_03.pdf",
+    "invoice_number": "FA-2026-07332",
+    "issue_date": "22-06-2026",
+    "issue_date_iso": "2026-06-22",
+    "seller_name": "Groupe Meddeb Distribution",
+    "seller_tax_id": "3056413U/N/M/000",
+    "seller_address": "90 Avenue Habib Bourguiba, 4000 Sousse",
+    "buyer_name": "Ste Agro-Alimentaire du Sahel",
+    "buyer_tax_id": "3767242H/N/M/000",
+    "buyer_address": "78 Rue du Lac Léman, 8000 Nabeul",
+    "line_items": [
+      {
+        "description": "Prestation de maintenance informatique",
+        "quantity": 7,
+        "unit": "heure",
+        "unit_price": 145.123,
+        "line_total": 1015.861
+      },
+      {
+        "description": "Développement module logiciel sur mesure",
+        "quantity": 11,
+        "unit": "forfait",
+        "unit_price": 1286.449,
+        "line_total": 14150.939
+      }
+    ],
+    "total_ht": 15166.8,
+    "tva_rate_percent": 19,
+    "tva_amount": 2881.692,
+    "total_ttc": 18048.492,
+    "currency": "TND"
+  },
+  {
+    "file": "invoice_04.pdf",
+    "invoice_number": "FA-2026-50433",
+    "issue_date": "20 février 2026",
+    "issue_date_iso": "2026-02-20",
+    "seller_name": "Cogitis Solutions Informatiques",
+    "seller_tax_id": "6978480X/A/M/000",
+    "seller_address": "47 Avenue Mohamed V, 5000 Monastir",
+    "buyer_name": "Cabinet d'Architecture Trabelsi",
+    "buyer_tax_id": "8451462Q/A/M/000",
+    "buyer_address": "18 Rue Ibn Khaldoun, 5000 Monastir",
+    "line_items": [
+      {
+        "description": "Vidéoprojecteur Epson EB-X41",
+        "quantity": 2,
+        "unit": "unité",
+        "unit_price": 731.804,
+        "line_total": 1463.608
+      },
+      {
+        "description": "Ordinateur portable Dell Latitude 5440",
+        "quantity": 3,
+        "unit": "unité",
+        "unit_price": 933.317,
+        "line_total": 2799.951
+      }
+    ],
+    "total_ht": 4263.559,
+    "tva_rate_percent": 13,
+    "tva_amount": 554.263,
+    "total_ttc": 4817.822,
+    "currency": "TND"
+  },
+  {
+    "file": "invoice_05.pdf",
+    "invoice_number": "FA-2026-02553",
+    "issue_date": "11/08/2026",
+    "issue_date_iso": "2026-08-11",
+    "seller_name": "Nour Bureau & Fournitures SUARL",
+    "seller_tax_id": "1543039C/A/M/000",
+    "seller_address": "65 Avenue Habib Bourguiba, 8000 Nabeul",
+    "buyer_name": "Zitouna Import-Export SUARL",
+    "buyer_tax_id": "7182278F/N/M/000",
+    "buyer_address": "112 Rue Alain Savary, 3000 Sfax",
+    "line_items": [
+      {
+        "description": "Prestation de maintenance informatique",
+        "quantity": 3,
+        "unit": "heure",
+        "unit_price": 155.227,
+        "line_total": 465.681
+      },
+      {
+        "description": "Chaise de bureau ergonomique",
+        "quantity": 9,
+        "unit": "unité",
+        "unit_price": 237.221,
+        "line_total": 2134.989
+      }
+    ],
+    "total_ht": 2600.67,
+    "tva_rate_percent": 7,
+    "tva_amount": 182.047,
+    "total_ttc": 2782.717,
+    "currency": "TND"
+  },
+  {
+    "file": "invoice_06.pdf",
+    "invoice_number": "FA-2026-30162",
+    "issue_date": "19-09-2026",
+    "issue_date_iso": "2026-09-19",
+    "seller_name": "Tekway Technologies SA",
+    "seller_tax_id": "9301031B/N/M/000",
+    "seller_address": "119 Avenue Mohamed V, 5000 Monastir",
+    "buyer_name": "Société Générale de Bâtiment SA",
+    "buyer_tax_id": "1834738E/D/M/000",
+    "buyer_address": "92 Rue Alain Savary, 4000 Sousse",
+    "line_items": [
+      {
+        "description": "Écran LED 24 pouces",
+        "quantity": 8,
+        "unit": "unité",
+        "unit_price": 359.969,
+        "line_total": 2879.752
+      },
+      {
+        "description": "Abonnement mensuel connexion internet fibre",
+        "quantity": 8,
+        "unit": "mois",
+        "unit_price": 83.63,
+        "line_total": 669.04
+      },
+      {
+        "description": "Chaise de bureau ergonomique",
+        "quantity": 4,
+        "unit": "unité",
+        "unit_price": 192.361,
+        "line_total": 769.444
+      }
+    ],
+    "total_ht": 4318.236,
+    "tva_rate_percent": 19,
+    "tva_amount": 820.465,
+    "total_ttc": 5138.701,
+    "currency": "TND"
+  },
+  {
+    "file": "invoice_07.pdf",
+    "invoice_number": "FA-2026-84697",
+    "issue_date": "22 novembre 2026",
+    "issue_date_iso": "2026-11-22",
+    "seller_name": "Établissements Ben Salah & Fils",
+    "seller_tax_id": "1065133G/D/M/000",
+    "seller_address": "104 Avenue Taïeb Mhiri, 4000 Sousse",
+    "buyer_name": "Pharmacie Centrale El Manar",
+    "buyer_tax_id": "2624731Q/A/M/000",
+    "buyer_address": "25 Avenue Habib Bourguiba, 2070 La Marsa",
+    "line_items": [
+      {
+        "description": "Écran LED 24 pouces",
+        "quantity": 6,
+        "unit": "unité",
+        "unit_price": 321.886,
+        "line_total": 1931.316
+      },
+      {
+        "description": "Prestation de conseil en organisation",
+        "quantity": 8,
+        "unit": "jour",
+        "unit_price": 334.788,
+        "line_total": 2678.304
+      }
+    ],
+    "total_ht": 4609.62,
+    "tva_rate_percent": 19,
+    "tva_amount": 875.828,
+    "total_ttc": 5485.448,
+    "currency": "TND"
+  },
+  {
+    "file": "invoice_08.pdf",
+    "invoice_number": "FA-2026-91304",
+    "issue_date": "10/07/2026",
+    "issue_date_iso": "2026-07-10",
+    "seller_name": "Carthage Consulting & Services",
+    "seller_tax_id": "8723430U/A/M/000",
+    "seller_address": "12 Avenue Mohamed V, 1000 Tunis",
+    "buyer_name": "Groupe Industriel Sfaxien SARL",
+    "buyer_tax_id": "5009788F/A/M/000",
+    "buyer_address": "22 Avenue Taïeb Mhiri, 1000 Tunis",
+    "line_items": [
+      {
+        "description": "Développement module logiciel sur mesure",
+        "quantity": 1,
+        "unit": "forfait",
+        "unit_price": 1129.391,
+        "line_total": 1129.391
+      },
+      {
+        "description": "Ramette papier A4 80g (500 feuilles)",
+        "quantity": 1,
+        "unit": "unité",
+        "unit_price": 10.03,
+        "line_total": 10.03
+      },
+      {
+        "description": "Prestation de conseil en organisation",
+        "quantity": 5,
+        "unit": "jour",
+        "unit_price": 339.489,
+        "line_total": 1697.445
+      }
+    ],
+    "total_ht": 2836.866,
+    "tva_rate_percent": 13,
+    "tva_amount": 368.793,
+    "total_ttc": 3205.659,
+    "currency": "TND"
+  }
+]
