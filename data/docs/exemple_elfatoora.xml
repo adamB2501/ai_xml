@@ -1,0 +1,212 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<TEIF controlingAgency="TTN" version="1.8.8">
+  <InvoiceHeader>
+    <MessageSenderIdentifier type="I-01">0736202XAM000</MessageSenderIdentifier>
+    <MessageRecieverIdentifier type="I-01">0914089JAM000</MessageRecieverIdentifier>
+  </InvoiceHeader>
+  <InvoiceBody>
+    <Bgm>
+      <DocumentIdentifier>12016_2012</DocumentIdentifier>
+      <DocumentType code="I-11">Facture</DocumentType>
+    </Bgm>
+    <Dtm>
+      <DateText format="ddMMyy" functionCode="I-31">070612</DateText>
+      <DateText format="ddMMyy-ddMMyy" functionCode="I-36">010512-310512</DateText>
+      <DateText format="ddMMyy" functionCode="I-32">070712</DateText>
+    </Dtm>
+    <PartnerSection>
+      <PartnerDetails functionCode="I-62">
+        <Nad>
+          <PartnerIdentifier type="I-01">0736202XAM000</PartnerIdentifier>
+          <PartnerName nameType="Qualification">Tunisie TradeNet</PartnerName>
+          <PartnerAdresses lang="fr">
+            <AdressDescription>Lotissement El Khalij Les Berges du Lac</AdressDescription>
+            <Street>Rue du Lac Malaren</Street>
+            <CityName>Tunis</CityName>
+            <PostalCode>1053</PostalCode>
+            <Country codeList="ISO_3166-1">TN</Country>
+          </PartnerAdresses>
+        </Nad>
+        <RffSection>
+          <Reference refID="I-815">B154702000</Reference>
+        </RffSection>
+        <RffSection>
+          <Reference refID="I-816">SA</Reference>
+        </RffSection>
+        <CtaSection>
+          <Contact functionCode="I-94">
+            <ContactIdentifier>TTN</ContactIdentifier>
+            <ContactName>Tunisie TradeNet</ContactName>
+          </Contact>
+          <Communication>
+            <ComMeansType>I-101</ComMeansType>
+            <ComAdress>71 861 712</ComAdress>
+          </Communication>
+        </CtaSection>
+        <CtaSection>
+          <Contact functionCode="I-94">
+            <ContactIdentifier>TTN</ContactIdentifier>
+            <ContactName>Tunisie TradeNet</ContactName>
+          </Contact>
+          <Communication>
+            <ComMeansType>I-102</ComMeansType>
+            <ComAdress>71 861 141</ComAdress>
+          </Communication>
+        </CtaSection>
+        <CtaSection>
+          <Contact functionCode="I-94">
+            <ContactIdentifier>TTN</ContactIdentifier>
+            <ContactName>Tunisie TradeNet</ContactName>
+          </Contact>
+          <Communication>
+            <ComMeansType>I-104</ComMeansType>
+            <ComAdress>www.tradenet.com.tn</ComAdress>
+          </Communication>
+        </CtaSection>
+      </PartnerDetails>
+      <PartnerDetails functionCode="I-64">
+        <Nad>
+          <PartnerIdentifier type="I-01">0914089JAM000</PartnerIdentifier>
+          <PartnerName nameType="Qualification">STE FRERE ET MOSAIQUE</PartnerName>
+          <PartnerAdresses lang="fr">
+            <AdressDescription/>
+            <Street/>
+            <CityName>Salle publique Tunis</CityName>
+            <PostalCode>1000</PostalCode>
+            <Country codeList="ISO_3166-1">TN</Country>
+          </PartnerAdresses>
+        </Nad>
+        <RffSection>
+          <Reference refID="I-81">0914089J</Reference>
+        </RffSection>
+        <RffSection>
+          <Reference refID="I-811">SMTP</Reference>
+        </RffSection>
+        <RffSection>
+          <Reference refID="I-813">Salle Publique</Reference>
+        </RffSection>
+        <RffSection>
+          <Reference refID="I-812">P</Reference>
+        </RffSection>
+        <RffSection>
+          <Reference refID="I-814">41115530</Reference>
+        </RffSection>
+      </PartnerDetails>
+    </PartnerSection>
+    <PytSection>
+      <PytSectionDetails>
+        <Pyt>
+          <PaymentTearmsTypeCode>I-114</PaymentTearmsTypeCode>
+          <PaymentTearmsDescription>Les banques sont priees de payer au RIB suivant: 0410 5044 4047 0138 1036.</PaymentTearmsDescription>
+        </Pyt>
+      </PytSectionDetails>
+      <PytSectionDetails>
+        <Pyt>
+          <PaymentTearmsTypeCode>I-115</PaymentTearmsTypeCode>
+          <PaymentTearmsDescription>A Regler exclusivement au niveau des bureaux postaux sur presentation de la facture.</PaymentTearmsDescription>
+        </Pyt>
+        <PytFii functionCode="I-141">
+          <AccountHolder>
+            <AccountNumber>0120021241115530</AccountNumber>
+            <OwnerIdentifier>1B</OwnerIdentifier>
+          </AccountHolder>
+          <InstitutionIdentification nameCode="0760">
+            <BranchIdentifier>0760</BranchIdentifier>
+            <InstitutionName>La poste</InstitutionName>
+          </InstitutionIdentification>
+        </PytFii>
+      </PytSectionDetails>
+    </PytSection>
+    <LinSection>
+      <Lin>
+        <ItemIdentifier>1</ItemIdentifier>
+        <LinImd lang="fr">
+          <ItemCode>DDM</ItemCode>
+          <ItemDescription>Dossier DDM</ItemDescription>
+        </LinImd>
+        <LinQty>
+          <Quantity measurementUnit="UNIT">1.0</Quantity>
+        </LinQty>
+        <LinTax>
+          <TaxTypeName code="I-1602">TVA</TaxTypeName>
+          <TaxDetails>
+            <TaxRate>12</TaxRate>
+          </TaxDetails>
+        </LinTax>
+        <LinMoa>
+          <MoaDetails>
+            <Moa amountTypeCode="I-183" currencyCodeList="ISO_4217">
+              <Amount currencyIdentifier="TND">2.000</Amount>
+            </Moa>
+          </MoaDetails>
+          <MoaDetails>
+            <Moa amountTypeCode="I-171" currencyCodeList="ISO_4217">
+              <Amount currencyIdentifier="TND">2.000</Amount>
+            </Moa>
+          </MoaDetails>
+        </LinMoa>
+      </Lin>
+    </LinSection>
+    <InvoiceMoa>
+      <AmountDetails>
+        <Moa amountTypeCode="I-179" currencyCodeList="ISO_4217">
+          <Amount currencyIdentifier="TND">2000000</Amount>
+        </Moa>
+      </AmountDetails>
+      <AmountDetails>
+        <Moa amountTypeCode="I-180" currencyCodeList="ISO_4217">
+          <Amount currencyIdentifier="TND">2.540</Amount>
+          <AmountDescription lang="fr">DEUX DINARS ET CINQ CENT QUARANTE MILLIMES</AmountDescription>
+        </Moa>
+      </AmountDetails>
+      <AmountDetails>
+        <Moa amountTypeCode="I-176" currencyCodeList="ISO_4217">
+          <Amount currencyIdentifier="TND">2.000</Amount>
+        </Moa>
+      </AmountDetails>
+      <AmountDetails>
+        <Moa amountTypeCode="I-182" currencyCodeList="ISO_4217">
+          <Amount currencyIdentifier="TND">2.000</Amount>
+        </Moa>
+      </AmountDetails>
+      <AmountDetails>
+        <Moa amountTypeCode="I-181" currencyCodeList="ISO_4217">
+          <Amount currencyIdentifier="TND">0.240</Amount>
+        </Moa>
+      </AmountDetails>
+    </InvoiceMoa>
+    <InvoiceTax>
+      <InvoiceTaxDetails>
+        <Tax>
+          <TaxTypeName code="I-1601">droit de timbre</TaxTypeName>
+          <TaxDetails>
+            <TaxRate>0</TaxRate>
+          </TaxDetails>
+        </Tax>
+        <AmountDetails>
+          <Moa amountTypeCode="I-178" currencyCodeList="ISO_4217">
+            <Amount currencyIdentifier="TND">0.300</Amount>
+          </Moa>
+        </AmountDetails>
+      </InvoiceTaxDetails>
+      <InvoiceTaxDetails>
+        <Tax>
+          <TaxTypeName code="I-1602">TVA</TaxTypeName>
+          <TaxDetails>
+            <TaxRate>12.0</TaxRate>
+          </TaxDetails>
+        </Tax>
+        <AmountDetails>
+          <Moa amountTypeCode="I-177" currencyCodeList="ISO_4217">
+            <Amount currencyIdentifier="TND">2.000</Amount>
+          </Moa>
+        </AmountDetails>
+        <AmountDetails>
+          <Moa amountTypeCode="I-178" currencyCodeList="ISO_4217">
+            <Amount currencyIdentifier="TND">0.240</Amount>
+          </Moa>
+        </AmountDetails>
+      </InvoiceTaxDetails>
+    </InvoiceTax>
+  </InvoiceBody>
+ </TEIF>
