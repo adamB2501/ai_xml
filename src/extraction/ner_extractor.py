@@ -5,6 +5,9 @@ import spacy
 nlp = spacy.load("ner_model")
 
 # --- Full label set (from training_data.py) -------------------------------
+# Every one of the 39 trained labels now has an explicit handler below --
+# nothing falls into other_fields unless the loaded model emits a label
+# this script has genuinely never seen (schema drift, not a design gap).
 
 SINGLETON_LABELS = {
     "INVOICE_NUMBER": "invoice_number",
@@ -13,7 +16,29 @@ SINGLETON_LABELS = {
     "TOTAL_HT": "total_ht",
     "TVA_AMOUNT": "total_tva",
     "TOTAL_TTC": "total_ttc",
+    "PAYMENT_TERMS": "payment_terms",
+    "RC_NUMBER": "rc_number",
+    "CAPITAL_SOCIAL": "capital_social",
+    "PO_NUMBER": "po_number",
+    "DELIVERY_NOTE_NUMBER": "delivery_note_number",
+    "STAMP_DUTY": "stamp_duty",
+    "WITHHOLDING_TAX": "withholding_tax",
+    "ADVANCE_PAYMENT": "advance_payment",
+    "AMOUNT_PAID": "amount_paid",
+    "BALANCE_DUE": "balance_due",
+    "CURRENCY": "currency",
+    "BANK_NAME": "bank_name",
+    "RIB": "rib",
+    "IBAN": "iban",
+    "SWIFT_BIC": "swift_bic",
+    "TAX_EXEMPTION_REASON": "tax_exemption_reason",
 }
+
+# DUE_DATE is deliberately NOT in SINGLETON_LABELS above -- it needs its
+# own reconciliation step against the positional DATE-based guess (see
+# Fix #1 below), rather than being overwritten by generic singleton logic.
+DUE_DATE_LABEL = "DUE_DATE"
+DUE_DATE_KEY = "due_date_from_model"
 
 # Fix #3: schema mismatch protection.
 # If the model was trained on a different naming convention (e.g. English
@@ -31,10 +56,25 @@ ALIASES = {
     "GRAND_TOTAL": "TOTAL_TTC",
 }
 
+# Fields that can legitimately appear more than once per invoice --
+# multiple VAT rates across line items, address fragments split apart by
+# label/value declustering (see the TTN template), repeated contact info
+# in header + footer, etc. Collected as lists rather than forced into a
+# single value with the same "keep longer, log the rest" conflict logic
+# used for true singletons.
 REPEATABLE_LABELS = {
     "DATE": "dates",
     "SELLER_TAX_ID": "seller_tax_ids",
     "BUYER_TAX_ID": "buyer_tax_ids",
+    "SELLER_ADDRESS": "seller_addresses",
+    "BUYER_ADDRESS": "buyer_addresses",
+    "DELIVERY_ADDRESS": "delivery_addresses",
+    "PHONE": "phones",
+    "EMAIL": "emails",
+    "WEBSITE": "websites",
+    "DISCOUNT_RATE": "discount_rates",
+    "DISCOUNT_AMOUNT": "discount_amounts",
+    "VAT_RATE": "vat_rates",
 }
 
 ITEM_LABELS = {
@@ -60,7 +100,13 @@ def _check_label_schema():
     except Exception:
         return  # pipeline doesn't expose labels this way; skip the check
 
-    known = set(SINGLETON_LABELS) | set(ALIASES) | set(REPEATABLE_LABELS) | set(ITEM_LABELS)
+    known = (
+        set(SINGLETON_LABELS)
+        | set(ALIASES)
+        | set(REPEATABLE_LABELS)
+        | set(ITEM_LABELS)
+        | {DUE_DATE_LABEL}
+    )
     unrecognized = model_labels - known
     if unrecognized:
         print(
@@ -130,14 +176,19 @@ def extract_fields(invoice_text, debug=False):
     conflicts = []
     date_ents = []  # (ent) kept separately so we can filter by position later
     item_ents = []
+    due_date_ents = []  # model's own DUE_DATE predictions, reconciled below
 
     for ent in doc.ents:
         if debug:
             print(ent.text, ent.label_)
 
-        label = ALIASES.get(ent.label_, ent.label_)  # Fix #3: resolve aliases first
+        raw_label = ent.label_
+        label = ALIASES.get(raw_label, raw_label)  # Fix #3: resolve aliases first
 
-        if label in SINGLETON_LABELS:
+        if raw_label == DUE_DATE_LABEL:
+            due_date_ents.append(ent)
+
+        elif label in SINGLETON_LABELS:
             key = SINGLETON_LABELS[label]
             existing = fields[key]
             if existing:
@@ -191,7 +242,6 @@ def extract_fields(invoice_text, debug=False):
             header_dates.append(ent.text)
 
     fields["issue_date"] = header_dates[0] if len(header_dates) > 0 else ""
-    fields["due_date"] = header_dates[1] if len(header_dates) > 1 else ""
     if len(header_dates) > 2:
         fields["extra_dates"] = header_dates[2:]
     if item_region_dates:
@@ -200,11 +250,44 @@ def extract_fields(invoice_text, debug=False):
         # dedicated ITEM_DATE label in the model.
         fields["other_fields"].setdefault("ITEM_DATE_CANDIDATES", []).extend(item_region_dates)
 
+    # --- Fix #1b: DUE_DATE reconciliation ---
+    # Previously this field was populated ONLY from the positional guess
+    # ("second generic DATE found outside the item region"), while the
+    # model's own explicit DUE_DATE predictions were silently discarded --
+    # they landed in other_fields["DUE_DATE"] and were never read back out.
+    # If the model tagged a DUE_DATE explicitly, that's a direct label and
+    # should win over a positional guess. The positional guess (second
+    # header date) is now only a fallback for when the model didn't emit
+    # DUE_DATE at all.
+    due_date_conflicts = []
+    due_date_value = ""
+    for ent in due_date_ents:
+        if due_date_value and _normalize(due_date_value) != _normalize(ent.text):
+            due_date_conflicts.append((due_date_value, ent.text))
+            if len(ent.text) > len(due_date_value):
+                due_date_value = ent.text
+        else:
+            due_date_value = due_date_value or ent.text
+
+    if due_date_value:
+        fields["due_date"] = due_date_value
+        fields["due_date_source"] = "model_label"
+    elif len(header_dates) > 1:
+        fields["due_date"] = header_dates[1]
+        fields["due_date_source"] = "positional_fallback"
+    else:
+        fields["due_date"] = ""
+        fields["due_date_source"] = "none"
+
     if debug:
         if conflicts:
             print("\n[conflicts] singleton field saw >1 differing value:")
             for label, kept, dropped in conflicts:
                 print(f"  {label}: kept {kept!r}, dropped {dropped!r}")
+        if due_date_conflicts:
+            print("\n[conflicts] DUE_DATE saw >1 differing model prediction:")
+            for kept, dropped in due_date_conflicts:
+                print(f"  kept {kept!r}, dropped {dropped!r}")
         if fields["other_fields"]:
             print("\n[unmapped] labels with no dedicated handler (see fields['other_fields']):")
             for label, texts in fields["other_fields"].items():
