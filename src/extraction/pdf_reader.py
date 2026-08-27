@@ -1,3 +1,19 @@
+# -*- coding: utf-8 -*-
+"""Text extraction for invoice PDFs.
+
+pdfplumber is the primary backend, kept deliberately as *raw* text (not a
+layout-aware parse): the training data (training_data.py / noisy_training_data.py)
+was built to model exactly the artifacts pdfplumber's raw extraction produces
+(CID glyphs, column-order scrambling, spaced-out digits, duplicate Arabic
+mirrors of Latin fields). Swapping the extractor for a cleaner layout parser
+without retraining would move inference input away from what the model was
+ever shown -- see clean_text() below for the (narrow, deterministic) cleanup
+that IS safe to apply on both sides.
+
+For scanned/image-only PDFs, extract_text_auto() falls back to OCR
+(ocr_extractor.py) automatically instead of raising.
+"""
+
 import re
 import unicodedata
 
@@ -17,6 +33,8 @@ _MARKDOWN_LINK = re.compile(r"\[([^\]]+)\]\((https?://[^\)]+)\)")
 _MULTI_SPACE = re.compile(r"[ \t]{2,}")
 _MULTI_BLANK_LINES = re.compile(r"\n{3,}")
 _BLANK_LINE = re.compile(r"^\s*$")
+
+SCANNED_TEXT_THRESHOLD = 20  # chars; below this, treat the PDF as image-only
 
 
 def _is_arabic_char(ch: str) -> bool:
@@ -65,6 +83,12 @@ def clean_text(
     strip_arabic_script: bool = True,
     cid_placeholder: str = "",
 ) -> str:
+    """The only cleanup applied to extraction output, by design: every step
+    here is deterministic and removes something with zero label-relevant
+    signal (CID glyphs, duplicate Arabic script, PDF whitespace noise).
+    Applied identically to pdfplumber and OCR output so both extraction
+    paths land in the same normalized form the model was trained on.
+    """
     text = strip_cid_artifacts(text, placeholder=cid_placeholder)
     if strip_arabic_script:
         text = strip_arabic(text)
@@ -84,6 +108,7 @@ def extract_text(pdf_path, clean: bool = True, **clean_kwargs):
     raw = "\n".join(full_text)
 
     return clean_text(raw, **clean_kwargs) if clean else raw
+
 
 def extract_words_with_positions(pdf_path, drop_cid_only: bool = True, drop_arabic: bool = True):
     all_words = []
@@ -110,6 +135,12 @@ def extract_words_with_positions(pdf_path, drop_cid_only: bool = True, drop_arab
 
 
 def extract_tables(pdf_path, clean: bool = True, strategy: str = "lines", **clean_kwargs):
+    """Best-effort structured table extraction via pdfplumber's own line/text
+    detection. Independent of extract_text()/extract_fields() -- useful when
+    you specifically need a grid (e.g. spot-checking a line-item table by
+    eye), not part of the NER pipeline itself, since the model is trained
+    against extract_text()'s flat reading-order string, not a grid.
+    """
     settings_primary = {"vertical_strategy": strategy, "horizontal_strategy": strategy}
     settings_fallback = {"vertical_strategy": "text", "horizontal_strategy": "text"}
 
@@ -150,6 +181,10 @@ def extract_table_by_position(
     clean: bool = True,
     **clean_kwargs,
 ):
+    """Reconstructs a table by clustering word bounding boxes into rows/
+    columns, for PDFs with no real table grid lines. Same independence note
+    as extract_tables() -- a spot-check utility, not part of the NER path.
+    """
     words = [w for w in extract_words_with_positions(pdf_path) if w["page"] == page_number]
     if not words:
         return []
@@ -214,16 +249,40 @@ def extract_table_by_position(
     return result
 
 
-def is_scanned_pdf(pdf_path):
-    text = extract_text(pdf_path)
-    return len(text.strip()) < 20
+def is_scanned_pdf(pdf_path, text: str = None):
+    """text can be passed in if the caller already extracted it, to avoid
+    opening the PDF a second time."""
+    if text is None:
+        text = extract_text(pdf_path)
+    return len(text.strip()) < SCANNED_TEXT_THRESHOLD
+
+
+def extract_text_auto(pdf_path, clean: bool = True, ocr_dpi: int = 300, **clean_kwargs):
+    """extract_text(), but falls back to OCR for scanned/image-only PDFs
+    instead of returning near-empty text. Raises a clear RuntimeError (not
+    an obscure ImportError) if the OCR backend isn't installed, since
+    pytesseract/pdf2image are optional deps only needed on this path.
+    """
+    raw = extract_text(pdf_path, clean=False)
+    if not is_scanned_pdf(pdf_path, text=raw):
+        return clean_text(raw, **clean_kwargs) if clean else raw
+
+    try:
+        from ocr_extractor import extract_text_ocr
+    except ImportError as exc:
+        raise RuntimeError(
+            f"{pdf_path} looks scanned/image-based (extracted only "
+            f"{len(raw.strip())} chars of text) and needs OCR, but the OCR "
+            "backend isn't installed. Run: pip install pytesseract pdf2image "
+            "(and install the Tesseract OCR binary + poppler separately)."
+        ) from exc
+
+    ocr_raw = extract_text_ocr(pdf_path, dpi=ocr_dpi)
+    return clean_text(ocr_raw, **clean_kwargs) if clean else ocr_raw
 
 
 if __name__ == "__main__":
     import sys
 
     path = sys.argv[1]
-    if is_scanned_pdf(path):
-        print("This PDF looks scanned/image-based. You'll need OCR, not this script.")
-    else:
-        print(extract_text(path))
+    print(extract_text_auto(path))

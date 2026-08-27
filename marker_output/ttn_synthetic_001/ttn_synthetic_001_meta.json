@@ -1,0 +1,137 @@
+{
+  "table_of_contents": [
+    {
+      "title": "",
+      "heading_level": null,
+      "page_id": 0,
+      "polygon": [
+        [
+          37.57707187450803,
+          445.9997489025629
+        ],
+        [
+          289.6112409538826,
+          445.9997489025629
+        ],
+        [
+          289.6112409538826,
+          457.1151162178943
+        ],
+        [
+          37.57707187450803,
+          457.1151162178943
+        ]
+      ]
+    },
+    {
+      "title": "[MONTANT EN LETTRES: 13513 DINARS ET 8 MILLIMES]",
+      "heading_level": null,
+      "page_id": 0,
+      "polygon": [
+        [
+          37.27430761611131,
+          456.5774950824034
+        ],
+        [
+          257.1843484643124,
+          456.5774950824034
+        ],
+        [
+          257.1843484643124,
+          468.7981872558594
+        ],
+        [
+          37.27430761611131,
+          468.7981872558594
+        ]
+      ]
+    },
+    {
+      "title": "",
+      "heading_level": null,
+      "page_id": 0,
+      "polygon": [
+        [
+          36.93722234384839,
+          502.1807456963421
+        ],
+        [
+          153.66005262860122,
+          502.1807456963421
+        ],
+        [
+          153.66005262860122,
+          513.2043586384475
+        ],
+        [
+          36.93722234384839,
+          513.2043586384475
+        ]
+      ]
+    },
+    {
+      "title": "Poste Coupon de Versement CCP Poste Bulletin de Versement CCP",
+      "heading_level": null,
+      "page_id": 0,
+      "polygon": [
+        [
+          40.0,
+          502.2427542627866
+        ],
+        [
+          432.33921740937893,
+          502.2427542627866
+        ],
+        [
+          432.33921740937893,
+          513.5871887207031
+        ],
+        [
+          40.0,
+          513.5871887207031
+        ]
+      ]
+    }
+  ],
+  "page_stats": [
+    {
+      "page_id": 0,
+      "text_extraction_method": "pdftext",
+      "block_counts": [
+        [
+          "Span",
+          182
+        ],
+        [
+          "Line",
+          42
+        ],
+        [
+          "Text",
+          14
+        ],
+        [
+          "SectionHeader",
+          4
+        ],
+        [
+          "Table",
+          3
+        ],
+        [
+          "PageHeader",
+          1
+        ]
+      ],
+      "block_metadata": {
+        "llm_request_count": 0,
+        "llm_error_count": 0,
+        "llm_tokens_used": 0,
+        "previous_text": "",
+        "previous_type": "",
+        "previous_order": 0
+      }
+    }
+  ],
+  "debug_data_path": "debug_data\\ttn_synthetic_001"
+}

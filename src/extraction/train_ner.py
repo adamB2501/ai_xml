@@ -1,5 +1,32 @@
 # -*- coding: utf-8 -*-
+"""Train the invoice NER model.
 
+Trains on a blended pool of synthetic examples spanning multiple invoice
+templates (--sources), not one specific layout: the previous version of
+this script trained exclusively on ttn_train_data.py (200 examples
+reverse-engineered from a single real template), which is why the deployed
+model only ever learned 21 of the 39 labels in the schema (no SELLER_NAME,
+CURRENCY, EMAIL, BANK_NAME, IBAN, PO_NUMBER, ... -- everything that template
+never happens to contain). Pooling in training_data.py's 900+ generic,
+template-varied examples (plus their noise-injected twins in
+noisy_training_data.py, which model the same pdfplumber extraction
+artifacts -- CID glyphs, label/value decluster, spaced digits -- without
+being tied to one template's layout) is what makes the result generalize.
+
+Early stopping and checkpointing are driven by DEV_DATA -- a fixed,
+independently-generated held-out set from training_data.py -- instead of a
+random split carved out of whatever happened to be in the training pool.
+That fixed set is also what evaluate_ner.py reports against, so "the dev
+F1 that picked this checkpoint" and "the dev F1 evaluate_ner.py prints
+afterward" are the same number computed the same way (see ner_eval.py).
+
+Usage:
+    python train_ner.py                              # all three sources
+    python train_ner.py --sources generic noisy      # drop TTN-specific data
+    python train_ner.py --max-iter 50 --patience 8
+"""
+
+import argparse
 import random
 from collections import Counter
 
@@ -7,11 +34,25 @@ import spacy
 from spacy.training import Example
 from spacy.util import minibatch
 from thinc.schedules import compounding
-#from noisy_training_data import NOISY_TRAIN_DATA
-#from training_data import TRAIN_DATA
+
+from ner_eval import score_dataset
+from noisy_training_data import NOISY_TRAIN_DATA
+from training_data import DEV_DATA, TRAIN_DATA
 from ttn_train_data import TTN_TRAIN_DATA
 
-ALL_TRAIN_DATA = TTN_TRAIN_DATA
+SOURCES = {
+    "generic": TRAIN_DATA,
+    "noisy": NOISY_TRAIN_DATA,
+    "ttn": TTN_TRAIN_DATA,
+}
+DEFAULT_SOURCES = ("generic", "noisy", "ttn")
+
+
+def build_train_pool(source_names):
+    pool = []
+    for name in source_names:
+        pool.extend(SOURCES[name])
+    return pool
 
 
 def make_aligned_example(nlp, text, annotations, drop_counter):
@@ -33,64 +74,33 @@ def make_aligned_example(nlp, text, annotations, drop_counter):
     return Example.from_dict(doc, example_dict)
 
 
-def split_train_dev(data, dev_frac=0.15, seed=2026):
-    """Held-out dev split, separate from training -- required for early
-    stopping to mean anything. Never trained on."""
-    data = list(data)
-    rng = random.Random(seed)
-    rng.shuffle(data)
-    n_dev = max(1, int(len(data) * dev_frac))
-    return data[n_dev:], data[:n_dev]
+def train(
+    output_dir="ner_model",
+    sources=DEFAULT_SOURCES,
+    max_iter=30,
+    patience=5,
+    min_delta=0.0,
+    seed=2026,
+):
+    """max_iter is a CEILING, not a fixed count -- training stops early once
+    dev F1 hasn't improved for `patience` consecutive epochs, and whatever
+    gets saved to output_dir is the checkpoint from the BEST epoch seen, not
+    necessarily the last one run."""
+    random.seed(seed)
 
+    train_data = build_train_pool(sources)
+    dev_data = list(DEV_DATA)
+    print(
+        f"train examples: {len(train_data)} (sources={list(sources)})  "
+        f"dev examples: {len(dev_data)} (fixed DEV_DATA, held out, never trained on)"
+    )
 
-def evaluate_f1(nlp, dataset):
-    """
-    Micro-averaged exact-match entity F1 on a held-out set. Gold spans are
-    aligned the same way as training (char_span contract/expand) before
-    comparing, so a genuine model miss isn't confused with a tokenization
-    alignment artifact.
-    """
-    tp = fp = fn = 0
-    for text, ann in dataset:
-        doc = nlp.make_doc(text)
-        gold_set = set()
-        for start, end, label in ann["entities"]:
-            span = doc.char_span(start, end, label=label, alignment_mode="contract")
-            if span is None:
-                span = doc.char_span(start, end, label=label, alignment_mode="expand")
-            if span is None:
-                continue
-            gold_set.add((span.start_char, span.end_char, span.label_))
-
-        pred_doc = nlp(text)
-        pred_set = {(e.start_char, e.end_char, e.label_) for e in pred_doc.ents}
-
-        tp += len(gold_set & pred_set)
-        fp += len(pred_set - gold_set)
-        fn += len(gold_set - pred_set)
-
-    precision = tp / (tp + fp) if (tp + fp) else 0.0
-    recall = tp / (tp + fn) if (tp + fn) else 0.0
-    f1 = 2 * precision * recall / (precision + recall) if (precision + recall) else 0.0
-    return precision, recall, f1
-
-
-def train(output_dir="ner_model", max_iter=30, patience=5, dev_frac=0.15, min_delta=0.0):
-    """
-    max_iter is now a CEILING, not a fixed count -- training stops early
-    once dev F1 hasn't improved for `patience` consecutive epochs, and
-    whatever gets saved to output_dir is the checkpoint from the BEST
-    epoch seen, not necessarily the last one run.
-    """
     nlp = spacy.blank("fr")
     ner = nlp.add_pipe("ner", last=True)
-
-    labels = sorted({ent[2] for _, ann in ALL_TRAIN_DATA for ent in ann["entities"]})
+    labels = sorted({ent[2] for _, ann in train_data for ent in ann["entities"]})
     for label in labels:
         ner.add_label(label)
-
-    train_data, dev_data = split_train_dev(ALL_TRAIN_DATA, dev_frac=dev_frac)
-    print(f"train examples: {len(train_data)}  dev examples: {len(dev_data)} (held out, never trained on)")
+    print(f"labels ({len(labels)}): {labels}")
 
     other_pipes = [pipe for pipe in nlp.pipe_names if pipe != "ner"]
     with nlp.disable_pipes(*other_pipes):
@@ -134,7 +144,7 @@ def train(output_dir="ner_model", max_iter=30, patience=5, dev_frac=0.15, min_de
                     f"across {n_examples} examples this epoch: {dict(drop_counter)}"
                 )
 
-            precision, recall, f1 = evaluate_f1(nlp, dev_data)
+            precision, recall, f1 = score_dataset(nlp, dev_data)
             print(f"  [dev] precision={precision:.3f} recall={recall:.3f} f1={f1:.3f}")
 
             if f1 > best_f1 + min_delta:
@@ -156,5 +166,30 @@ def train(output_dir="ner_model", max_iter=30, patience=5, dev_frac=0.15, min_de
     print(f"Training finished. Best model (epoch {best_epoch}, dev f1={best_f1:.3f}) saved to {output_dir}")
 
 
+def parse_args():
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("--output-dir", default="ner_model")
+    parser.add_argument(
+        "--sources",
+        nargs="+",
+        choices=sorted(SOURCES),
+        default=list(DEFAULT_SOURCES),
+        help="Synthetic datasets to pool for training (default: generic + noisy + ttn).",
+    )
+    parser.add_argument("--max-iter", type=int, default=30)
+    parser.add_argument("--patience", type=int, default=5)
+    parser.add_argument("--min-delta", type=float, default=0.0)
+    parser.add_argument("--seed", type=int, default=2026)
+    return parser.parse_args()
+
+
 if __name__ == "__main__":
-    train()
+    args = parse_args()
+    train(
+        output_dir=args.output_dir,
+        sources=args.sources,
+        max_iter=args.max_iter,
+        patience=args.patience,
+        min_delta=args.min_delta,
+        seed=args.seed,
+    )
