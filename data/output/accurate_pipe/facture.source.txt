@@ -1,0 +1,40 @@
+ideryet services
+Enterprise Solutions
+SARL au capital de 450 000 dt
+R.C : B15880 1996
+FACTURE N° 260143
+DOIT
+Code Client 41140840
+Code TVA : 503873 Q/A/M/000 Nom Client DR. KAMMOUN MOHAMED MONCEF
+C.C.B. : BH 14 301 301 101 700 427 684 Adresse AV. 7 NOV. IMM. EL-FARABI
+C.C.P. : 17 701 0000 000 594843 96 Ville SFAX
+335352FAP000
+Le : 27/08/2026 Matricule Fiscal
+Code Article Article Prix U.HT Quantité TVA Montant H.TVA
+EPA-C/USB CABLE USB 10.000 1 19 10.000
+PP-CR2032 BATTERY CR2032 (PILE) CR2025 7.500 1 19 7.500
+** ENTRETIEN GENERAL DU PC 0
+** CHANGEMENT PILE ET CABLE IMPRIMANTE 0
+** VERIFICATION ET TEST OK 0
+000 MAIN D OEUVRE 80.000 1 19 80.000
+Taux TVA 0 % 19 % Total Hors TVA 97.500
+Base 97.500
+Montant 18.525
+Cumul TVA 18.525
+BL 260078:24/08/2026
+Droit de Timbre 1.000
+FI 26000835:24/08/2026
+BC Mode de paiement 1
+NET A PAYER 117.025
+ARRETEE LA PRESENTE FACTURE A LA SOMME DE
+CENT DIX-SEPT DINARS 025 MILLIMES
+Le Client La Direction Commerciale
+Mode de règlement par chèque ou par virement dès réception de la facture.
+Lors de tout règlement prière d'indiquer le numéro de la facture.
+En cas de litige , les tribunaux de sfax sont territorialement compléments
+services
+Adresse : Av.Majida Boulila, Imm.Zaphir, 3027 Sfax_Tunisie - E-mail: idservices@ideryet.in
+Tél : [+216] 74 400 808/ 74 400 805/ 20 530 228 - Fax: [+216] 74 400 820
+Code TVA : 503873QAM000 - RIB: BH/ 14 301 301 101 700 427 684 - CCP/17 701 000 000 059 484 396
+ID MEDICAL DEPARTMENT | ID INFORMATIQUE DEPARTMENT | ID SOFT DEPARTMENT | ID PROJECTS DEPARTMENT
+www.ideryetgroup.com

@@ -1,0 +1,60 @@
+[project]
+name = "adaptive-pipe"
+version = "0.2.0"
+description = "PDF invoice -> TEIF (Tunisian e-invoice) XML pipeline, with a local vision+LLM extractor, per-seller memory, and a review UI"
+requires-python = ">=3.11"
+dependencies = [
+    # PDF reading -- text layer, word positions, page rasterization
+    "pdfplumber==0.11.10",
+    # Invoice / TEIF data model (teif_pipeline.models) and every dataclass
+    # boundary in accurate_pipe / adaptive_pipe
+    "pydantic==2.13.4",
+    # Raster handling for the vision-model path (accurate_pipe.llm resizes
+    # and PNG-encodes crops before sending them to Ollama). pdfplumber's
+    # own to_image()/crop() also depend on this being installed.
+    "Pillow",
+    # The review UI (adaptive_pipe/ui) -- FastAPI app + ASGI server
+    "fastapi",
+    "uvicorn",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "httpx",  # needed by fastapi.testclient.TestClient, used in tests/unit/test_adaptive_pipe_ui.py
+]
+
+[project.scripts]
+accurate-pipe = "accurate_pipe.run:main"
+adaptive-pipe = "adaptive_pipe.run:main"
+
+[tool.setuptools.packages.find]
+# teif_pipeline    -- the shared foundation: Invoice/Party/LineItem model,
+#                     numeric parsing, the TEIF XML builder + validator,
+#                     and the review queue's SQLite store. Trimmed to just
+#                     these -- the old spaCy-NER extraction path, the
+#                     ingestion/OCR helpers, the validation "gates" system,
+#                     and the training/evaluation tooling for that retired
+#                     pipeline were removed; nothing under accurate_pipe/
+#                     adaptive_pipe imports them.
+# accurate_pipe    -- the vision(qwen2.5vl) + LLM extraction pipeline:
+#                     PDF -> text (pdfplumber + vision model for scanned/
+#                     rasterized regions) -> structured fields (schema-
+#                     constrained LLM call) -> deterministic verification
+#                     -> targeted re-ask loop.
+# adaptive_pipe    -- THE PIPELINE TO RUN. Wraps accurate_pipe's machinery
+#                     unchanged and adds: a per-seller memory built from
+#                     real human corrections (adaptive_pipe/memory.py), a
+#                     hard gate so nothing reaches a filing-ready XML
+#                     without passing every check or being approved by a
+#                     person (adaptive_pipe/queue.py -> teif_pipeline's
+#                     review store), and a local review UI
+#                     (adaptive_pipe/ui -- run with
+#                     `uvicorn adaptive_pipe.ui.server:app`).
+include = ["teif_pipeline*", "accurate_pipe*", "adaptive_pipe*"]
+
+# Ollama (https://ollama.com) is a separate, non-pip runtime dependency --
+# install it, then pull the models this project talks to:
+#   ollama pull qwen2.5vl:7b     # vision -- scanned pages / rasterized bands
+#   ollama pull qwen3:14b        # text extraction (adaptive_pipe.config.TEXT_MODEL)
+# See README.md for the full setup, including notes for a lower-VRAM machine.

@@ -1,0 +1,19 @@
+# Virtual environment
+env/
+venv/
+.venv/
+
+# Python bytecode/cache -- regenerated automatically, never meaningful to track
+__pycache__/
+*.pyc
+
+# pytest
+.pytest_cache/
+
+# Runtime-generated, not source -- recreated automatically on import/test run
+review_queue.db
+
+# Editor/OS noise
+.vscode/
+.idea/
+Thumbs.db

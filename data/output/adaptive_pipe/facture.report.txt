@@ -1,0 +1,102 @@
+======================================================================
+adaptive_pipe report  -  facture.pdf
+======================================================================
+
+classification    : mixed
+tier used         : light  (tiers tried: ['light'])
+model calls       : 5
+    qwen2.5vl:7b         83s  in=1285 out=39
+    qwen2.5vl:7b         96s  in=1223 out=216
+    mistral:latest      196s  in=2562 out=740
+    mistral:latest      113s  in=1654 out=539
+    mistral:latest      101s  in=1583 out=523
+total model time  : 590s
+
+--- light tier ---
+  memory: no prior history for this seller (or none applicable)
+  errors after this tier: 0, still_deficient: []
+
+----------------------------------------------------------------------
+VERDICT: OK - XML produced, no review needed
+----------------------------------------------------------------------
+
+final deterministic checks (accurate_pipe.verify):
+    [WARNING] buyer_tax_id: '41140840' doesn't match a Matricule Fiscal shape (7 digits / 3 letters / 3 digits)
+    [WARNING] line_items: some line_total_ht values are missing - cannot verify the line sum against total_ht
+
+TEIF XML validation:
+    [WARNING] LinSection/Lin[3]/LinImd/ItemDescription: empty
+    [WARNING] LinSection/Lin[3]/LinMoa: no I-171 (line total) amount
+    [WARNING] LinSection/Lin[4]/LinImd/ItemDescription: empty
+    [WARNING] LinSection/Lin[4]/LinMoa: no I-171 (line total) amount
+    [WARNING] LinSection/Lin[5]/LinImd/ItemDescription: empty
+    [WARNING] LinSection/Lin[5]/LinMoa: no I-171 (line total) amount
+    [WARNING] LinSection/Lin[6]/LinImd/ItemDescription: empty
+
+processing notes:
+    [ingest] page 0: body from text layer + 2 rasterized band(s) read by qwen2.5vl:7b.
+    [light] 0 error(s), still_deficient=[]
+
+final fields:
+{
+  "invoice_number": "260143",
+  "issue_date": "27/08/2026",
+  "seller_name": "ideryet services Enterprise Solutions SARL",
+  "seller_tax_id": "503873QAM000",
+  "buyer_name": "DR. KAMMOUN MOHAMED MONCEF",
+  "buyer_tax_id": "41140840",
+  "total_ht": "97.500",
+  "tva_amount": "18.525",
+  "total_ttc": "117.025",
+  "line_items": [
+    {
+      "code": "EPA-C/USB CABLE USB",
+      "description": "USB 10.000",
+      "unit_price_ht": "10.000",
+      "quantity": "1",
+      "vat_rate_percent": "19",
+      "line_total_ht": "10.000"
+    },
+    {
+      "code": "PP-CR2032 BATTERY CR2032 (PILE)",
+      "description": "CR2025 7.500",
+      "unit_price_ht": "7.500",
+      "quantity": "1",
+      "vat_rate_percent": "19",
+      "line_total_ht": "7.500"
+    },
+    {
+      "code": "** ENTRETIEN GENERAL DU PC",
+      "description": null,
+      "unit_price_ht": null,
+      "quantity": null,
+      "vat_rate_percent": null,
+      "line_total_ht": null
+    },
+    {
+      "code": "** CHANGEMENT PILE ET CABLE IMPRIMANTE",
+      "description": null,
+      "unit_price_ht": null,
+      "quantity": null,
+      "vat_rate_percent": null,
+      "line_total_ht": null
+    },
+    {
+      "code": "** VERIFICATION ET TEST OK",
+      "description": null,
+      "unit_price_ht": null,
+      "quantity": null,
+      "vat_rate_percent": null,
+      "line_total_ht": null
+    },
+    {
+      "code": "000 MAIN D OEUVRE",
+      "description": null,
+      "unit_price_ht": "80.000",
+      "quantity": "1",
+      "vat_rate_percent": null,
+      "line_total_ht": "80.000"
+    }
+  ],
+  "stamp_duty": "1.000"
+}

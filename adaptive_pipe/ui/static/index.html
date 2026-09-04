@@ -1,0 +1,751 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>adaptive_pipe review</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>
+  /* A ledger/document aesthetic on purpose, not a generic SaaS-dashboard
+     palette: warm paper background instead of cold gray, a dark ink
+     sidebar for real contrast (not all-pale-on-white), sharp corners
+     instead of rounded-everything, monospace for data values (this is a
+     numbers/IDs tool -- alignment matters), thin rules instead of
+     floating shadow-cards, and a deep ledger green as the one accent
+     instead of default SaaS blue. Status colors (red/amber) are reserved
+     strictly for actual problems, never used decoratively. */
+  :root{
+    --ink:#14181f; --ink2:#1d222b; --ink-line:#2c323d; --ink-text:#e8e5da; --ink-muted:#8f95a3;
+    --paper:#f6f3ec; --surface:#ffffff; --line:#ddd6c7; --line-strong:#c7bea8;
+    --text:#1c1a15; --muted:#78715c;
+    --accent:#1f4d3d; --accent-2:#173b2f; --accent-soft:#e3ebe5;
+    --err:#a3271c; --err-soft:#f7e7e4; --warn:#8a5a00; --warn-soft:#f6edd9; --ok:#1f4d3d; --ok-soft:#e3ebe5;
+    --mono:Consolas,"IBM Plex Mono",monospace; --sans:"Segoe UI",-apple-system,Roboto,sans-serif;
+    --serif:Georgia,"Times New Roman",serif;
+    --r:3px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--text);
+       font:13.5px/1.5 var(--sans);height:100vh;overflow:hidden}
+  button{font-family:inherit;cursor:pointer}
+  [dir="rtl"]{text-align:right}
+
+  .app{display:grid;grid-template-columns:300px 1fr;height:100vh}
+
+  /* ---------------- sidebar (dark, deliberate contrast) ---------------- */
+  .sidebar{background:var(--ink);color:var(--ink-text);display:flex;flex-direction:column;overflow:hidden}
+  .brand{padding:18px 18px 14px;border-bottom:1px solid var(--ink-line)}
+  .brand .name{font-family:var(--serif);font-size:19px;font-weight:700;letter-spacing:.01em}
+  .brand .sub{display:block;font:11px var(--sans);color:var(--ink-muted);margin-top:3px;
+             text-transform:uppercase;letter-spacing:.08em}
+  .langsw{display:flex;gap:0;margin-top:12px;border:1px solid var(--ink-line);border-radius:var(--r);overflow:hidden;width:fit-content}
+  .langsw button{background:transparent;border:none;color:var(--ink-muted);padding:4px 10px;font-size:11px;
+                font-weight:700;letter-spacing:.03em}
+  .langsw button.active{background:var(--accent);color:#fff}
+  .langsw button:not(.active):hover{color:var(--ink-text)}
+
+  .sidebar-section{padding:14px 16px;border-bottom:1px solid var(--ink-line)}
+  .sidebar-section h2{font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;
+                      color:var(--ink-muted);margin:0 0 10px;font-weight:700}
+  .pick-btn{display:flex;align-items:center;gap:8px;width:100%;background:var(--ink2);
+            border:1px solid var(--ink-line);border-radius:var(--r);padding:9px 12px;font-size:12.5px;
+            color:var(--ink-text);margin-bottom:8px;font-weight:600}
+  .pick-btn:hover{border-color:var(--accent);color:#fff}
+  #pickedList{max-height:120px;overflow-y:auto;font:11.5px var(--mono);color:var(--ink-muted);margin:6px 0}
+  #pickedList div{padding:3px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .primary-btn{width:100%;background:var(--accent);color:#fff;border:none;border-radius:var(--r);
+               padding:9px 12px;font-size:12.5px;font-weight:700}
+  .primary-btn:hover{background:var(--accent-2)}
+  .primary-btn:disabled{background:#3a4048;color:var(--ink-muted);cursor:default}
+
+  #activeJobs{margin-top:10px;display:flex;flex-direction:column;gap:10px}
+  .job-file{font-size:11px}
+  .job-file .fname{font-family:var(--mono);color:var(--ink-text);white-space:nowrap;overflow:hidden;
+                   text-overflow:ellipsis;display:flex;justify-content:space-between;gap:6px;margin-bottom:4px}
+  .job-file .fname .st{font-weight:700;text-transform:uppercase;font-size:9px;letter-spacing:.04em;color:var(--ink-muted)}
+  .progress-track{height:3px;background:var(--ink-line);overflow:hidden;position:relative}
+  .progress-track .fill{position:absolute;top:0;bottom:0;width:35%;background:var(--accent);
+                        animation:indeterminate 1.3s ease-in-out infinite}
+  .progress-track.done .fill{animation:none;width:100%}
+  .progress-track.failed .fill{animation:none;width:100%;background:var(--err)}
+  @keyframes indeterminate{0%{left:-35%}100%{left:100%}}
+  .job-file .phase{color:var(--ink-muted);margin-top:4px;font-size:10.5px}
+
+  .queue-list{flex:1;overflow-y:auto;padding:6px 8px}
+  .queue-item{padding:9px 10px;border-radius:var(--r);cursor:pointer;margin-bottom:2px;
+             border-left:2px solid transparent;display:flex;align-items:flex-start;gap:6px}
+  .queue-item:hover{background:var(--ink2)}
+  .queue-item.active{background:var(--ink2);border-left-color:var(--accent)}
+  .queue-item .qi-main{flex:1;min-width:0}
+  .queue-item .name{font:12px var(--mono);color:var(--ink-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .queue-item .status{font-size:10px;text-transform:uppercase;letter-spacing:.04em;margin-top:2px;color:var(--ink-muted)}
+  .queue-item .rm{background:none;border:none;color:var(--ink-muted);font-size:13px;padding:2px 4px;opacity:0;flex-shrink:0}
+  .queue-item:hover .rm{opacity:1}
+  .queue-item .rm:hover{color:var(--err)}
+  .queue-item .status.st-pending{color:#d8a838} .queue-item .status.st-corrected{color:#6fa8ff}
+  .queue-item .status.st-approved{color:#5cb88a}
+
+  /* ---------------- main ---------------- */
+  .main{display:flex;flex-direction:column;overflow:hidden;min-height:0}
+  .topbar{display:flex;align-items:center;gap:10px;padding:12px 22px;border-bottom:1px solid var(--line);
+          background:var(--surface)}
+  .topbar .title{font:700 13.5px var(--mono);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .badge{padding:3px 9px;border-radius:2px;font-size:10.5px;font-weight:700;text-transform:uppercase;
+        letter-spacing:.04em;border:1px solid transparent}
+  .badge.err{background:var(--err-soft);color:var(--err);border-color:var(--err)}
+  .badge.ok{background:var(--ok-soft);color:var(--ok);border-color:var(--ok)}
+  .btn{background:var(--surface);border:1px solid var(--line-strong);border-radius:var(--r);padding:7px 13px;
+       font-size:12px;font-weight:600;color:var(--text)}
+  .btn:hover{border-color:var(--accent);color:var(--accent)}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  .btn.primary:hover{background:var(--accent-2);color:#fff}
+
+  .review{display:grid;grid-template-columns:1fr 1.15fr;flex:1;min-height:0}
+
+  /* ---------------- left: document-style fields ---------------- */
+  .doc-pane{overflow-y:auto;padding:20px 24px;min-width:0}
+  .doc-section{background:var(--surface);border:1px solid var(--line);margin-bottom:14px}
+  .doc-section h3{margin:0;padding:8px 14px;font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;
+                  color:var(--muted);background:var(--paper);border-bottom:1px solid var(--line);font-weight:700;
+                  display:flex;justify-content:space-between;align-items:center}
+  .doc-row{display:grid;grid-template-columns:150px 1fr;align-items:start;gap:10px;
+           padding:8px 14px;border-bottom:1px solid var(--line);border-left:3px solid transparent}
+  .doc-row:last-child{border-bottom:none}
+  .doc-row:hover{background:var(--paper)}
+  .doc-row .lbl{font-size:12px;color:var(--muted);padding-top:6px;font-weight:600}
+  .doc-row .val-wrap{min-width:0}
+  .doc-row input, .doc-row textarea{width:100%;background:transparent;border:1px solid transparent;
+        border-radius:2px;padding:5px 7px;font:13px var(--mono);color:var(--text)}
+  .doc-row input:hover, .doc-row textarea:hover{border-color:var(--line-strong);background:var(--surface)}
+  .doc-row input:focus, .doc-row textarea:focus{outline:none;border-color:var(--accent);background:var(--surface);
+        box-shadow:0 0 0 2px var(--accent-soft)}
+  .doc-row.empty input{color:var(--muted);font-style:italic;font-family:var(--sans);font-size:12px}
+  .doc-row .probs{display:flex;gap:6px;margin-top:5px;flex-wrap:wrap}
+  .problem{font:10px var(--sans);padding:2px 7px 2px 6px;border-left:2px solid;font-weight:700;
+          text-transform:uppercase;letter-spacing:.03em}
+  .problem.error{border-color:var(--err);color:var(--err);background:var(--err-soft)}
+  .problem.warning{border-color:var(--warn);color:var(--warn);background:var(--warn-soft)}
+  .memory-badge{font:10px var(--sans);color:var(--accent);border:1px solid var(--accent);border-radius:2px;
+               padding:1px 6px;margin-left:6px;font-weight:700;cursor:help}
+
+  .lineitems-wrap{padding:10px 14px}
+  table.li{width:100%;border-collapse:collapse;font-size:12px}
+  table.li th{text-align:left;font-size:10px;text-transform:uppercase;color:var(--muted);
+              padding:4px 6px;border-bottom:2px solid var(--line);font-weight:700}
+  table.li td{padding:2px 4px;border-bottom:1px solid var(--line)}
+  table.li input{width:100%;border:1px solid transparent;border-radius:2px;padding:5px 6px;
+                 font:12px var(--mono);background:transparent}
+  table.li input:hover{border-color:var(--line-strong);background:var(--paper)}
+  table.li input:focus{outline:none;border-color:var(--accent);background:#fff;box-shadow:0 0 0 2px var(--accent-soft)}
+  table.li tr td:first-child{border-left:3px solid #ccc}
+  .add-row-btn{margin-top:8px;font-size:11.5px}
+
+  .custom-row{display:grid;grid-template-columns:150px 1fr auto;gap:8px;align-items:center;
+             padding:8px 14px;border-bottom:1px solid var(--line)}
+  .custom-row:last-child{border-bottom:none}
+  .custom-row input{font:13px var(--mono);border:1px solid var(--line-strong);border-radius:2px;padding:5px 7px}
+  .custom-row input.ckey{font:12px var(--sans);font-weight:600;color:var(--muted)}
+  .custom-row .rm{background:none;border:none;color:var(--muted);font-size:15px;padding:2px 6px}
+  .custom-row .rm:hover{color:var(--err)}
+  .add-custom-wrap{padding:10px 14px}
+
+  .save-bar{position:sticky;bottom:0;background:linear-gradient(transparent,var(--paper) 35%);
+            padding:14px 0 4px;display:flex;justify-content:flex-end;gap:8px}
+
+  /* ---------------- right: pdf ---------------- */
+  .pdf-pane{background:#e4e1d6;overflow:auto;min-width:0;min-height:0;position:relative;
+            display:flex;flex-direction:column;align-items:center;padding:20px}
+  .pdf-toolbar{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:8px;
+              background:var(--surface);border:1px solid var(--line-strong);border-radius:var(--r);
+              padding:5px 12px;margin-bottom:14px;font-size:11.5px;color:var(--muted)}
+  .pdf-toolbar button{background:none;border:none;color:var(--text);font-size:13px;padding:2px 6px}
+  .pdf-toolbar button:hover{color:var(--accent)}
+  .pdf-wrap{position:relative;box-shadow:0 1px 4px rgba(20,24,31,.18);background:#fff}
+
+  .textLayer{position:absolute;inset:0;overflow:hidden;line-height:1;opacity:1;z-index:2}
+  .textLayer span, .textLayer br{color:transparent;position:absolute;white-space:pre;
+        cursor:text;transform-origin:0% 0%}
+  .textLayer ::selection{background:rgba(31,77,61,.35)}
+
+  .hl-box{position:absolute;border:2px solid transparent;border-radius:1px;pointer-events:auto;
+          cursor:pointer;transition:opacity .12s,box-shadow .12s;z-index:3}
+  .hl-box.dashed{border-style:dashed}
+  .hl-box.active{box-shadow:0 0 0 2px #fff,0 0 0 4px var(--accent)}
+
+  .empty{color:var(--muted);padding:60px 24px;text-align:center;font-size:13.5px}
+  .empty b{color:var(--text)}
+
+  .modal-backdrop{position:fixed;inset:0;background:rgba(20,24,31,.55);display:flex;
+                  align-items:center;justify-content:center;z-index:50}
+  .modal{background:var(--surface);border-radius:var(--r);padding:18px;max-width:80vw;
+        max-height:80vh;overflow:auto;box-shadow:0 4px 24px rgba(20,24,31,.3)}
+  .modal pre{white-space:pre-wrap;font-size:12px;color:var(--text);font-family:var(--mono)}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="sidebar">
+    <div class="brand">
+      <div class="name">adaptive_pipe</div>
+      <small class="sub">invoice review</small>
+      <div class="langsw" id="langSwitch">
+        <button data-lang="fr" onclick="setLang('fr')">FR</button>
+        <button data-lang="ar" onclick="setLang('ar')">AR</button>
+        <button data-lang="en" onclick="setLang('en')">EN</button>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <h2>Process invoices</h2>
+      <button class="pick-btn" onclick="pickFiles()"><span>📄</span> Choose file(s)…</button>
+      <button class="pick-btn" onclick="pickFolder()"><span>📁</span> Choose folder…</button>
+      <div id="pickedList"></div>
+      <button class="primary-btn" id="processBtn" onclick="processSelected()" disabled>Process (0 selected)</button>
+      <div id="activeJobs"></div>
+    </div>
+
+    <div class="sidebar-section" style="flex:1;display:flex;flex-direction:column;min-height:0;border-bottom:none">
+      <h2>Review queue</h2>
+      <div class="queue-list" id="queueList"></div>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="topbar" id="topbar" style="display:none">
+      <div class="title" id="docTitle"></div>
+      <span class="badge" id="verdictBadge"></span>
+      <button class="btn" onclick="showXml()">View XML</button>
+      <button class="btn primary" onclick="approveItem()">Approve</button>
+    </div>
+    <div class="review" id="review" style="display:none">
+      <div class="doc-pane" id="docPane"></div>
+      <div class="pdf-pane">
+        <div class="pdf-toolbar">
+          <button onclick="prevPage()">‹</button>
+          <span id="pageLabel"></span>
+          <button onclick="nextPage()">›</button>
+          <span style="width:1px;height:16px;background:var(--line-strong)"></span>
+          <button onclick="zoom(-0.15)">－</button>
+          <span id="zoomLabel"></span>
+          <button onclick="zoom(0.15)">＋</button>
+          <button onclick="fitWidth()">fit</button>
+        </div>
+        <div class="pdf-wrap" id="pdfWrap">
+          <canvas id="pdfCanvas"></canvas>
+          <div class="textLayer" id="textLayer"></div>
+        </div>
+      </div>
+    </div>
+    <div class="empty" id="emptyState">
+      Use <b>Choose file(s)…</b> or <b>Choose folder…</b> on the left to process invoices,<br>
+      or select an existing item from the <b>Review queue</b>.
+    </div>
+  </div>
+</div>
+
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+
+const PALETTE = ["#e6194B","#3cb44b","#4363d8","#f58231","#911eb4","#42d4f4","#f032e6",
+                 "#9A6324","#469990","#8b5e00","#5b6b00","#000075","#a34fb0","#c2185b","#0f9d8a","#b06000"];
+
+const SECTIONS = [
+  {key:"document", keys:["invoice_number","issue_date","currency","delivery_note_number","other_references"]},
+  {key:"seller", keys:["seller_name","seller_tax_id","seller_address","seller_rc_number","seller_capital"]},
+  {key:"buyer", keys:["buyer_name","buyer_tax_id","buyer_address"]},
+  {key:"amounts", keys:["total_ht","tva_amount","stamp_duty","total_ttc"]},
+];
+const CANONICAL_KEYS = new Set(SECTIONS.flatMap(s => s.keys).concat(["line_items"]));
+
+// ---------------------------------------------------------------- i18n
+// Field LABELS only, for now -- the underlying dict KEYS (invoice_number,
+// seller_tax_id, ...) stay English everywhere else; they're the schema
+// keys every Python module shares, not display text. Section headers and
+// buttons are still English (agreed: fields first).
+const SECTION_TITLES = {
+  en: {document:"Document", seller:"Seller", buyer:"Buyer", amounts:"Amounts", lineitems:"Line items", custom:"Additional fields"},
+  fr: {document:"Document", seller:"Vendeur", buyer:"Acheteur", amounts:"Montants", lineitems:"Lignes de facture", custom:"Champs additionnels"},
+  ar: {document:"المستند", seller:"البائع", buyer:"المشتري", amounts:"المبالغ", lineitems:"بنود الفاتورة", custom:"حقول إضافية"},
+};
+const FIELD_LABELS = {
+  fr: {
+    invoice_number:"Numéro de facture", issue_date:"Date d'émission",
+    seller_name:"Nom du vendeur", seller_tax_id:"Matricule fiscal (vendeur)", seller_address:"Adresse du vendeur",
+    seller_rc_number:"N° RC du vendeur", seller_capital:"Capital social",
+    buyer_name:"Nom de l'acheteur", buyer_tax_id:"Matricule fiscal (acheteur)", buyer_address:"Adresse de l'acheteur",
+    currency:"Devise", total_ht:"Total HT", tva_amount:"Montant TVA", stamp_duty:"Droit de timbre",
+    total_ttc:"Total TTC", delivery_note_number:"N° bon de livraison", other_references:"Autres références",
+    code:"Code article", description:"Désignation", unit_price_ht:"Prix U. HT", quantity:"Quantité",
+    vat_rate_percent:"Taux TVA (%)", line_total_ht:"Montant HT",
+  },
+  ar: {
+    invoice_number:"رقم الفاتورة", issue_date:"تاريخ الإصدار",
+    seller_name:"اسم البائع", seller_tax_id:"المعرف الجبائي (البائع)", seller_address:"عنوان البائع",
+    seller_rc_number:"السجل التجاري للبائع", seller_capital:"رأس المال",
+    buyer_name:"اسم المشتري", buyer_tax_id:"المعرف الجبائي (المشتري)", buyer_address:"عنوان المشتري",
+    currency:"العملة", total_ht:"المجموع دون احتساب الأداء", tva_amount:"مبلغ الأداء على القيمة المضافة",
+    stamp_duty:"معلوم الطابع الجبائي", total_ttc:"المجموع شامل الأداء", delivery_note_number:"رقم وصل التسليم",
+    other_references:"مراجع أخرى",
+    code:"رمز الصنف", description:"البيان", unit_price_ht:"سعر الوحدة", quantity:"الكمية",
+    vat_rate_percent:"نسبة الأداء (%)", line_total_ht:"المبلغ دون احتساب الأداء",
+  },
+  en: {},   // falls back to humanize()
+};
+const RTL_LANGS = new Set(["ar"]);
+const ARABIC_RE = /[؀-ۿݐ-ݿࢠ-ࣿﭐ-﷿ﹰ-﻿]/;
+
+function humanize(key){
+  return key.replace(/_/g,' ').replace(/\b\w/g, c => c.toUpperCase())
+            .replace('Ht','HT').replace('Ttc','TTC').replace('Rc ','RC ');
+}
+function labelFor(key) {
+  return (FIELD_LABELS[state.lang] && FIELD_LABELS[state.lang][key]) || humanize(key);
+}
+function sectionTitle(key) { return (SECTION_TITLES[state.lang] || SECTION_TITLES.en)[key]; }
+
+// Manual choice (from the switcher) always wins and is remembered. With no
+// manual choice yet, the tool looks at what it just extracted from the
+// opened document: if a meaningful share of the field VALUES are Arabic
+// script, it defaults that reading session to Arabic labels; otherwise
+// French. This only decides which LABEL set to show -- it never touches
+// the extracted data itself.
+function detectDocLang(fields) {
+  const text = Object.values(fields || {})
+    .filter(v => typeof v === 'string').join(' ');
+  const arabicChars = (text.match(new RegExp(ARABIC_RE, 'g')) || []).length;
+  return (text.length > 0 && arabicChars / text.length > 0.15) ? 'ar' : 'fr';
+}
+function setLang(lang, manual = true) {
+  state.lang = lang;
+  if (manual) localStorage.setItem('adaptive_pipe_lang', lang);
+  document.querySelectorAll('#langSwitch button').forEach(b => b.classList.toggle('active', b.dataset.lang === lang));
+  if (state.currentItemId !== null) renderDoc();
+}
+
+let FIELD_SPEC = [];
+let LINE_ITEM_SPEC = [];
+let state = {
+  lang: localStorage.getItem('adaptive_pipe_lang') || 'fr',
+  langManual: !!localStorage.getItem('adaptive_pipe_lang'),
+  pickedPaths: [],
+  currentItemId: null,
+  fields: {}, problems: [], highlights: {}, corrections: {},
+  customFields: [],        // [{key, value}] -- free-form, not in FIELD_SPEC at all
+  edited: {},
+  pdfDoc: null, pageNum: 1, scale: null, fitScale: 1,
+};
+
+async function loadFieldSpec() {
+  const r = await fetch('/api/field-spec');
+  const d = await r.json();
+  FIELD_SPEC = d.fields; LINE_ITEM_SPEC = d.line_item_fields;
+}
+
+// ---------------------------------------------------------------- native pickers
+async function pickFiles() {
+  const r = await fetch('/api/pick-files', {method:'POST'});
+  const d = await r.json();
+  if (d.paths && d.paths.length) setPicked(d.paths);
+}
+async function pickFolder() {
+  const r = await fetch('/api/pick-folder', {method:'POST'});
+  const d = await r.json();
+  if (d.paths && d.paths.length) setPicked(d.paths);
+  else if (d.folder) alert('No PDFs found under ' + d.folder);
+}
+function setPicked(paths) {
+  state.pickedPaths = paths;
+  const el = document.getElementById('pickedList');
+  el.innerHTML = paths.map(p => `<div title="${p}">${p.split(/[\\/]/).pop()}</div>`).join('');
+  const btn = document.getElementById('processBtn');
+  btn.disabled = paths.length === 0;
+  btn.textContent = `Process (${paths.length} selected)`;
+}
+
+// ---------------------------------------------------------------- process
+async function processSelected() {
+  await fetch('/api/process', {method:'POST', headers:{'Content-Type':'application/json'},
+                               body: JSON.stringify({paths: state.pickedPaths})});
+  pollActiveJobs();
+}
+
+let _lastDoneIds = new Set();
+async function pollActiveJobs() {
+  let jobs;
+  try {
+    const r = await fetch('/api/jobs');
+    jobs = await r.json();
+  } catch (e) { return; }
+
+  renderActiveJobs(jobs.filter(j => j.status !== 'done'));
+
+  const justFinished = jobs.filter(j => j.status === 'done' && !_lastDoneIds.has(j.id));
+  if (justFinished.length) loadQueue();
+  jobs.forEach(j => { if (j.status === 'done') _lastDoneIds.add(j.id); });
+}
+
+function renderActiveJobs(jobs) {
+  const el = document.getElementById('activeJobs');
+  if (!jobs.length) { el.innerHTML = ''; return; }
+  el.innerHTML = '';
+  for (const job of jobs) {
+    for (const f of job.files) {
+      const card = document.createElement('div');
+      card.className = 'job-file';
+      const name = f.path.split(/[\\/]/).pop();
+      const trackClass = f.status === 'failed' ? 'failed' : (f.status === 'done' ? 'done' : '');
+      card.innerHTML = `
+        <div class="fname"><span title="${f.path}">${name}</span><span class="st">${f.status}</span></div>
+        <div class="progress-track ${trackClass}"><div class="fill"></div></div>
+        <div class="phase">${f.error ? f.error.split('\n')[0] : (f.phase || '')}</div>`;
+      el.appendChild(card);
+    }
+  }
+}
+
+// ---------------------------------------------------------------- queue list
+async function loadQueue() {
+  const r = await fetch('/api/queue');
+  const items = await r.json();
+  const el = document.getElementById('queueList');
+  el.innerHTML = "";
+  for (const it of items) {
+    const row = document.createElement('div');
+    row.className = 'queue-item' + (it.id === state.currentItemId ? ' active' : '');
+    const name = (it.source_path || '').split(/[\\/]/).pop();
+    const main = document.createElement('div'); main.className = 'qi-main';
+    main.innerHTML = `<div class="name">#${it.id} ${name}</div><div class="status st-${it.status}">${it.status}</div>`;
+    main.onclick = () => openItem(it.id);
+    const rm = document.createElement('button'); rm.className = 'rm'; rm.textContent = '✕';
+    rm.title = 'Remove from review queue';
+    rm.onclick = (e) => { e.stopPropagation(); removeQueueItem(it.id); };
+    row.append(main, rm);
+    el.appendChild(row);
+  }
+}
+
+async function removeQueueItem(id) {
+  const label = `#${id}`;
+  if (!confirm(`Remove ${label} from the review queue? This also removes any corrections it recorded, `
+              + `which stops them informing future documents from the same seller.`)) return;
+  await fetch(`/api/queue/${id}`, {method:'DELETE'});
+  if (state.currentItemId === id) {
+    state.currentItemId = null;
+    document.getElementById('topbar').style.display = 'none';
+    document.getElementById('review').style.display = 'none';
+    document.getElementById('emptyState').style.display = 'block';
+  }
+  loadQueue();
+}
+
+// ---------------------------------------------------------------- open item
+async function openItem(id) {
+  state.currentItemId = id; state.edited = {};
+  const r = await fetch(`/api/queue/${id}`);
+  const data = await r.json();
+  state.fields = data.fields; state.problems = data.problems; state.corrections = data.corrections;
+  state.customFields = Object.keys(state.fields)
+    .filter(k => !k.startsWith('_') && !CANONICAL_KEYS.has(k))
+    .map(k => ({key: k, value: state.fields[k]}));
+
+  if (!state.langManual) setLang(detectDocLang(state.fields), false);
+
+  const hr = await fetch(`/api/queue/${id}/highlights`);
+  state.highlights = await hr.json();
+
+  document.getElementById('emptyState').style.display = 'none';
+  document.getElementById('topbar').style.display = 'flex';
+  document.getElementById('review').style.display = 'grid';
+  document.getElementById('docTitle').textContent = `#${id}  ${(data.source_path||'').split(/[\\/]/).pop()}`;
+  const hasError = state.problems.some(p => p.severity === 'error');
+  const badge = document.getElementById('verdictBadge');
+  badge.textContent = hasError ? 'needs review' : 'checks pass';
+  badge.className = 'badge ' + (hasError ? 'err' : 'ok');
+
+  renderDoc();
+  state.scale = null;
+  await loadPdf(`/api/queue/${id}/pdf`);
+  loadQueue();
+}
+
+// ---------------------------------------------------------------- pdf.js
+async function loadPdf(url) {
+  state.pdfDoc = await pdfjsLib.getDocument(url).promise;
+  state.pageNum = 1;
+  await computeFitScale();
+  await renderPage();
+}
+async function computeFitScale() {
+  const page = await state.pdfDoc.getPage(state.pageNum);
+  const natural = page.getViewport({scale: 1});
+  const paneWidth = document.querySelector('.pdf-pane').clientWidth - 48;
+  state.fitScale = Math.max(0.3, paneWidth / natural.width);
+  if (state.scale === null) state.scale = state.fitScale;
+}
+function fitWidth(){ state.scale = state.fitScale; renderPage(); }
+function zoom(delta){ state.scale = Math.max(0.3, Math.min(4, state.scale + delta)); renderPage(); }
+
+async function renderPage() {
+  const page = await state.pdfDoc.getPage(state.pageNum);
+  const viewport = page.getViewport({scale: state.scale});
+  const canvas = document.getElementById('pdfCanvas');
+  canvas.width = viewport.width; canvas.height = viewport.height;
+  const ctx = canvas.getContext('2d');
+  await page.render({canvasContext: ctx, viewport}).promise;
+
+  const textLayerDiv = document.getElementById('textLayer');
+  textLayerDiv.innerHTML = '';
+  textLayerDiv.style.width = viewport.width + 'px';
+  textLayerDiv.style.height = viewport.height + 'px';
+  document.getElementById('pdfWrap').style.width = viewport.width + 'px';
+  document.getElementById('pdfWrap').style.height = viewport.height + 'px';
+  try {
+    const textContent = await page.getTextContent();
+    await pdfjsLib.renderTextLayer({textContentSource: textContent, container: textLayerDiv, viewport}).promise;
+  } catch (e) { /* no text layer on this page -- nothing to select */ }
+
+  document.getElementById('pageLabel').textContent = `page ${state.pageNum} / ${state.pdfDoc.numPages}`;
+  document.getElementById('zoomLabel').textContent = Math.round(state.scale * 100) + '%';
+  drawHighlights();
+}
+function prevPage(){ if(state.pageNum>1){state.pageNum--; renderPage();} }
+function nextPage(){ if(state.pdfDoc && state.pageNum<state.pdfDoc.numPages){state.pageNum++; renderPage();} }
+window.addEventListener('resize', async () => { if (state.pdfDoc) { await computeFitScale(); } });
+
+function drawHighlights() {
+  const wrap = document.getElementById('pdfWrap');
+  wrap.querySelectorAll('.hl-box').forEach(n => n.remove());
+  for (const [field, info] of Object.entries(state.highlights)) {
+    for (const rect of info.rects) {
+      if (rect.page !== state.pageNum - 1) continue;
+      const box = document.createElement('div');
+      box.className = 'hl-box' + (rect.precise ? '' : ' dashed');
+      box.dataset.field = field;
+      box.style.left = (rect.x0 * state.scale) + 'px';
+      box.style.top = (rect.top * state.scale) + 'px';
+      box.style.width = ((rect.x1 - rect.x0) * state.scale) + 'px';
+      box.style.height = ((rect.bottom - rect.top) * state.scale) + 'px';
+      box.style.borderColor = info.color;
+      box.style.background = info.color + '22';
+      box.title = field + (rect.precise ? '' : ' (approximate region — not a text-layer match)');
+      box.onclick = () => flashField(field);
+      wrap.appendChild(box);
+    }
+  }
+}
+// hovering a field row jumps to its page first if the highlight lives
+// elsewhere -- otherwise hovering did nothing visible for anything not on
+// the currently-viewed page.
+function highlightField(field, on) {
+  if (on) {
+    const info = state.highlights[field];
+    const rectOnOtherPage = info && info.rects.find(r => r.page !== state.pageNum - 1);
+    if (rectOnOtherPage) { state.pageNum = rectOnOtherPage.page + 1; renderPage(); return; }
+  }
+  document.querySelectorAll(`.hl-box[data-field="${cssEscape(field)}"]`).forEach(b => b.classList.toggle('active', on));
+}
+function flashField(field) {
+  const row = document.querySelector(`[data-field-row="${cssEscape(field)}"]`);
+  if (row) { row.scrollIntoView({behavior:'smooth', block:'center'});
+    row.style.background = 'var(--accent-soft)'; setTimeout(() => row.style.background = '', 900); }
+  highlightField(field, true); setTimeout(() => highlightField(field, false), 900);
+}
+function cssEscape(s){ return s.replace(/[^a-zA-Z0-9_-]/g, c => '\\' + c); }
+function colorFor(key) {
+  const m = key.match(/^line_items\[(\d+)\]/);
+  if (m) return PALETTE[(parseInt(m[1]) + 8) % PALETTE.length];
+  const idx = FIELD_SPEC.findIndex(f => f.key === key);
+  return PALETTE[(idx >= 0 ? idx : Math.abs(hashCode(key))) % PALETTE.length];
+}
+function hashCode(s){ let h=0; for(let i=0;i<s.length;i++){h=(h*31+s.charCodeAt(i))|0;} return h; }
+
+// ---------------------------------------------------------------- document-style fields panel
+function currentValue(key) {
+  return state.edited.hasOwnProperty(key) ? state.edited[key] : state.fields[key];
+}
+
+function renderDoc() {
+  const pane = document.getElementById('docPane');
+  pane.innerHTML = "";
+  const problemsByField = {};
+  for (const p of state.problems) (problemsByField[p.field_name] ||= []).push(p);
+
+  for (const section of SECTIONS) {
+    const box = document.createElement('div');
+    box.className = 'doc-section';
+    box.innerHTML = `<h3>${sectionTitle(section.key)}</h3>`;
+    for (const key of section.keys) box.appendChild(docRow(key, problemsByField[key] || []));
+    pane.appendChild(box);
+  }
+
+  const liBox = document.createElement('div');
+  liBox.className = 'doc-section';
+  liBox.innerHTML = `<h3>${sectionTitle('lineitems')}</h3>`;
+  const wrap = document.createElement('div'); wrap.className = 'lineitems-wrap';
+  wrap.appendChild(lineItemsTable(state.fields.line_items || []));
+  const addBtn = document.createElement('button');
+  addBtn.className = 'btn add-row-btn'; addBtn.textContent = '+ Add line item';
+  addBtn.onclick = () => {
+    const items = (state.fields.line_items || []).slice();
+    items.push({});
+    state.fields = {...state.fields, line_items: items};
+    renderDoc();
+  };
+  wrap.appendChild(addBtn);
+  liBox.appendChild(wrap);
+  pane.appendChild(liBox);
+
+  pane.appendChild(customFieldsSection());
+
+  const saveBar = document.createElement('div');
+  saveBar.className = 'save-bar';
+  const saveBtn = document.createElement('button');
+  saveBtn.className = 'btn primary'; saveBtn.textContent = 'Save changes';
+  saveBtn.onclick = saveAllChanges;
+  saveBar.appendChild(saveBtn);
+  pane.appendChild(saveBar);
+}
+
+function docRow(key, problems) {
+  const row = document.createElement('div');
+  const value = currentValue(key);
+  const isEmpty = value == null || value === '';
+  row.className = 'doc-row' + (isEmpty ? ' empty' : '');
+  row.dataset.fieldRow = key;
+  row.style.borderLeftColor = colorFor(key);
+  row.onmouseenter = () => highlightField(key, true);
+  row.onmouseleave = () => highlightField(key, false);
+
+  const lbl = document.createElement('div'); lbl.className = 'lbl';
+  lbl.textContent = labelFor(key);
+  if (RTL_LANGS.has(state.lang)) lbl.dir = 'rtl';
+  row.appendChild(lbl);
+
+  const valWrap = document.createElement('div'); valWrap.className = 'val-wrap';
+  const input = document.createElement('input');
+  input.placeholder = isEmpty ? '(not extracted — click to fill in)' : '';
+  input.value = value == null ? '' : (Array.isArray(value) ? value.join(', ') : value);
+  input.oninput = () => { state.edited[key] = input.value; row.classList.toggle('empty', input.value === ''); };
+  valWrap.appendChild(input);
+
+  if (problems.length) {
+    const probs = document.createElement('div'); probs.className = 'probs';
+    for (const p of problems) {
+      const b = document.createElement('span'); b.className = 'problem ' + p.severity;
+      b.textContent = p.severity; b.title = p.message;
+      probs.appendChild(b);
+    }
+    valWrap.appendChild(probs);
+  }
+  row.appendChild(valWrap);
+  return row;
+}
+
+function lineItemsTable(items) {
+  const table = document.createElement('table'); table.className = 'li';
+  table.innerHTML = '<thead><tr>' + LINE_ITEM_SPEC.map(f => `<th>${labelFor(f.key)}</th>`).join('') + '</tr></thead>';
+  const tbody = document.createElement('tbody');
+  items.forEach((item, i) => {
+    const tr = document.createElement('tr');
+    for (const f of LINE_ITEM_SPEC) {
+      const td = document.createElement('td');
+      if (f === LINE_ITEM_SPEC[0]) td.style.borderLeft = `3px solid ${colorFor('line_items['+i+']')}`;
+      const inp = document.createElement('input');
+      const fieldKey = `line_items[${i}].${f.key}`;
+      inp.value = state.edited.hasOwnProperty(fieldKey) ? state.edited[fieldKey] : (item[f.key] ?? '');
+      inp.placeholder = '—';
+      inp.oninput = () => { state.edited[fieldKey] = inp.value; };
+      inp.onmouseenter = () => highlightField(fieldKey, true);
+      inp.onmouseleave = () => highlightField(fieldKey, false);
+      td.appendChild(inp);
+      tr.appendChild(td);
+    }
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody);
+  return table;
+}
+
+// ---------------------------------------------------------------- custom (arbitrary) fields
+// Not restricted to line items: this covers ANYTHING the reviewer wants
+// to add that the pipeline's schema never anticipated -- a PO number, a
+// discount code, a handwritten note, whatever the document actually has.
+// It's stored as an ordinary correction under the key the reviewer types
+// (slugified), which the backend already accepts for any field name --
+// see adaptive_pipe/config.py's DOTTED_TO_FLAT identity fallback.
+function slugify(s) {
+  return s.trim().toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
+}
+function customFieldsSection() {
+  const box = document.createElement('div');
+  box.className = 'doc-section';
+  box.innerHTML = `<h3>${sectionTitle('custom')}</h3>`;
+
+  state.customFields.forEach((cf, i) => {
+    const row = document.createElement('div'); row.className = 'custom-row';
+    const keyInp = document.createElement('input'); keyInp.className = 'ckey';
+    keyInp.value = cf.key; keyInp.placeholder = 'field name';
+    keyInp.oninput = () => { cf.key = keyInp.value; };
+    const valInp = document.createElement('input');
+    valInp.value = cf.value ?? ''; valInp.placeholder = 'value';
+    valInp.oninput = () => { cf.value = valInp.value; };
+    const rm = document.createElement('button'); rm.className = 'rm'; rm.textContent = '✕';
+    rm.title = 'Remove';
+    rm.onclick = () => { state.customFields.splice(i, 1); renderDoc(); };
+    row.append(keyInp, valInp, rm);
+    box.appendChild(row);
+  });
+
+  const addWrap = document.createElement('div'); addWrap.className = 'add-custom-wrap';
+  const addBtn = document.createElement('button'); addBtn.className = 'btn'; addBtn.textContent = '+ Add field';
+  addBtn.onclick = () => { state.customFields.push({key:'', value:''}); renderDoc(); };
+  addWrap.appendChild(addBtn);
+  box.appendChild(addWrap);
+  return box;
+}
+
+// ---------------------------------------------------------------- save / approve / xml
+async function saveAllChanges() {
+  const entries = Object.entries(state.edited);
+  for (const [fieldName, value] of entries) {
+    await fetch(`/api/queue/${state.currentItemId}/correct`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({field_name: fieldName, corrected_value: value}),
+    });
+  }
+  for (const cf of state.customFields) {
+    const key = slugify(cf.key || '');
+    if (!key || !String(cf.value ?? '').trim()) continue;
+    await fetch(`/api/queue/${state.currentItemId}/correct`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({field_name: key, corrected_value: cf.value}),
+    });
+  }
+  await openItem(state.currentItemId);
+}
+async function approveItem() {
+  if (Object.keys(state.edited).length || state.customFields.length) await saveAllChanges();
+  await fetch(`/api/queue/${state.currentItemId}/approve`, {method:'POST'});
+  await openItem(state.currentItemId);
+}
+async function showXml() {
+  const r = await fetch(`/api/queue/${state.currentItemId}/xml`);
+  const data = await r.json();
+  const backdrop = document.createElement('div');
+  backdrop.className = 'modal-backdrop';
+  backdrop.onclick = (e) => { if (e.target === backdrop) backdrop.remove(); };
+  backdrop.innerHTML = `<div class="modal"><pre>${data.xml.replace(/</g,'&lt;')}</pre></div>`;
+  document.body.appendChild(backdrop);
+}
+
+// ---------------------------------------------------------------- init
+(async function init(){
+  setLang(state.lang, false);
+  await loadFieldSpec();
+  loadQueue();
+  pollActiveJobs();
+  setInterval(loadQueue, 8000);
+  setInterval(pollActiveJobs, 2500);
+})();
+</script>
+</body>
+</html>
